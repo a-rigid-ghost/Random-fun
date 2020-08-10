@@ -1,0 +1,99 @@
+import os
+import numpy as np
+!apt-get install -y swig libpulse-dev
+!swig -version
+!pip3 install pocketsphinx
+!pip3 list | grep pocketsphinx
+!pip3 install SpeechRecognition
+!pip install deepspeech==0.6.0
+!curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.6.0/deepspeech-0.6.0-models.tar.gz
+!tar -xvzf deepspeech-0.6.0-models.tar.gz
+!ls -l ./deepspeech-0.6.0-models/
+from typing import Tuple
+import wave
+import speech_recognition as sr
+! pip install jiwer
+
+# The audiofile to be convered
+
+TESTCASE = [
+  {
+    'filename': 'test1.wav',
+    'text': //enter the correct transcription,
+    'encoding': 'LINEAR16',
+    'lang': 'en-US'
+  }
+]
+
+# Auxilary Functions
+
+def read_wav_file(filename) -> Tuple[bytes, int]:
+    with wave.open(filename, 'rb') as w:
+        rate = w.getframerate()
+        frames = w.getnframes()
+        buffer = w.readframes(frames)
+
+    return buffer, rate
+
+def simulate_stream(buffer: bytes, batch_size: int = 4096):
+    buffer_len = len(buffer)
+    offset = 0
+    while offset < buffer_len:
+        end_offset = offset + batch_size
+        buf = buffer[offset:end_offset]
+        yield buf
+        offset = end_offset
+
+import deepspeech
+
+model_file_path = 'deepspeech-0.6.0-models/output_graph.pbmm'
+beam_width = 500
+model = deepspeech.Model(model_file_path, beam_width)
+
+# Add language model for better accuracy
+
+lm_file_path = 'deepspeech-0.6.0-models/lm.binary'
+trie_file_path = 'deepspeech-0.6.0-models/trie'
+lm_alpha = 0.75
+lm_beta = 1.85
+model.enableDecoderWithLM(lm_file_path, trie_file_path, lm_alpha, lm_beta)
+
+def deepspeech_batch_stt(filename: str, lang: str, encoding: str) -> str:
+    buffer, rate = read_wav_file(filename)
+    data16 = np.frombuffer(buffer, dtype=np.int16)
+    return model.stt(data16)
+
+# Testing Mozilla Deepspeech
+
+for t in TESTCASES:
+    print('\naudio file="{0}"    expected text="{1}"'.format(t['filename'], t['text']))
+    print('deepspeech-streaming-stt: "{}"'.format(
+        deepspeech_streaming_stt(t['filename'], t['lang'], t['encoding'])
+    ))
+
+
+
+# Testing CMUPocketSphinx
+ 
+from os import path
+AUDIO_FILE = path.join(path.dirname(path.realpath("test3.wav")), "test3.wav")
+r = sr.Recognizer()
+
+with sr.AudioFile(AUDIO_FILE) as source:
+    audio = r.record(source)  # read the entire audio file
+transcript=r.recognize_sphinx(audio)
+print(transcript)
+
+# Comparing Performance through WER Computation
+
+import jiwer
+transformation = jiwer.Compose([jiwer.ToLowerCase()]) 
+ground_truth = //enter the correct transcription
+hypothesis = //enter the model transcription
+
+wer = jiwer.wer(ground_truth, hypothesis,
+    truth_transform=transformation, 
+    hypothesis_transform=transformation)
+print(wer)
+
+
